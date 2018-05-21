@@ -1,0 +1,46 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans     
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context 
+        http://www.springframework.org/schema/context/spring-context.xsd 
+    	http://www.springframework.org/schema/task 
+    	http://www.springframework.org/schema/task/spring-task-3.0.xsd ">
+
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:program.properties</value>				
+				<value>classpath:properties/#{systemProperties['environment']}/jdbc.properties</value>
+				<value>classpath:properties/#{systemProperties['environment']}/kafka.properties</value>
+				<value>classpath:properties/#{systemProperties['environment']}/filenet.properties</value>
+				<value>classpath:properties/#{systemProperties['environment']}/rabbitmq.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<context:component-scan base-package="com.arkheion.*" />
+	<task:annotation-driven />
+	<import resource="jdbc-pool.xml" />
+	<import resource="services-soap.xml" />
+
+	<bean name="taskExecutor"
+		class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor"
+		destroy-method="destroy">
+		<property name="corePoolSize" value="100" />
+		<property name="maxPoolSize" value="1000" />
+		<property name="queueCapacity" value="100" />
+	</bean>
+
+
+	<bean name="gson"
+		class="org.springframework.http.converter.json.GsonFactoryBean">
+		<property name="prettyPrinting" value="false" />
+		<property name="dateFormatPattern" value="yyyy-MM-dd" />
+	</bean>
+	
+</beans>
