@@ -2,7 +2,6 @@
 This service application project act as middleware for IBM FiletNet repository.
 
 ## Code style
-If you're using any code style like xo, standard etc. That will help others while contributing to your project. Ex. -
 
 [![eclipse-cd](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://github.com/checkstyle/eclipse-cs)
  
