@@ -1,0 +1,3 @@
+create database arkheion;
+create user filearchive
+grant all on arkheion.* to ‘filearchive’@’localhost’ identified by ‘passw’;
