@@ -2,6 +2,7 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'idea' 
 apply plugin: 'io.spring.dependency-management' 
+apply plugin: 'org.sonarqube'  
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -43,6 +44,7 @@ buildscript {
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}") 
         classpath("io.spring.gradle:dependency-management-plugin:0.5.2.RELEASE")
+	classpath("org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.6.2")
     }
 }
 
@@ -58,11 +60,15 @@ springBoot {
     mainClassName = "com.arkheion.app.ArchiveApplication"
 }
 
-
+sonarqube {
+    properties {
+        property 'sonar.coverage.exclusions', "**/*"
+        property 'sonar.java.libraries', "lib/*.jar"
+    }
+}
 
 task copyRuntimeLibs(type: Copy) {
     into "$buildDir/output/lib"
     from configurations.runtime
 }
-
 

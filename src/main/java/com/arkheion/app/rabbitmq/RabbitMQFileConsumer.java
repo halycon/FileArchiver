@@ -1,17 +1,5 @@
 package com.arkheion.app.rabbitmq;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
-import javax.annotation.Resource;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.stereotype.Component;
-
 import com.arkheion.app.dao.IFileArchiverDAO;
 import com.arkheion.app.model.CustomMessage;
 import com.arkheion.app.model.FileModel;
@@ -21,6 +9,16 @@ import com.arkheion.app.strategy.IFileDeleteStrategy;
 import com.arkheion.app.strategy.IFileReadStrategy;
 import com.arkheion.app.strategy.IFileWriteStrategy;
 import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 @Component("RabbitMQFileConsumer")
 public class RabbitMQFileConsumer {
@@ -119,8 +117,8 @@ public class RabbitMQFileConsumer {
 
 					FileModel existingFileModel = files1 != null && files1.size() > 0 ? files1.get(0) : null;
 
-					fileModel = filenetFileWriteStrategy.writeFile(fileModel, existingFileModel != null ? true : false);
-					success = fileModel.getErrorMessage() == null ? true : false;
+					fileModel = filenetFileWriteStrategy.writeFile(fileModel, existingFileModel != null);
+					success = fileModel.getErrorMessage() == null;
 
 					if (fileModel.getChannel_ref_code() != null) {
 						success = unixSystemFileDeleteStrategy.deleteFile(fileModel.getLocalStoreFileName(), "",
@@ -137,11 +135,12 @@ public class RabbitMQFileConsumer {
 			}
 			if (success) {
 				fileModel.setProces_date(LocalDateTime.now());
-				success = fileArchiverJdbcDOA.updateQueueRecordProcessDateById(LocalDateTime.now(), true,
+				fileArchiverJdbcDOA.updateQueueRecordProcessDateById(LocalDateTime.now(), true,
 						fileModel.getId(), fileModel.getChannel_ref_code(), fileModel.getErrorMessage());
-			} else {
-				success = fileArchiverJdbcDOA.updateQueueRecordProcessDateById(LocalDateTime.now(), false,
-						fileModel.getId(), fileModel.getChannel_ref_code(), fileModel.getErrorMessage());
+			} else if (fileModel != null) {
+				fileArchiverJdbcDOA.updateQueueRecordProcessDateById(LocalDateTime.now(), false,
+                            fileModel.getId(), fileModel.getChannel_ref_code(), fileModel.getErrorMessage());
+
 				logger.info("Proccess message error :: {} :: {} :: {}", false, fileModel.getId(),
 						fileModel.getErrorMessage());
 			}

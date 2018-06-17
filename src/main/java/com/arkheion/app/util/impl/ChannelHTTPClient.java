@@ -1,13 +1,6 @@
 package com.arkheion.app.util.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
+import org.apache.http.*;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
@@ -25,18 +18,17 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
-import org.apache.http.protocol.HttpProcessor;
-import org.apache.http.protocol.HttpProcessorBuilder;
-import org.apache.http.protocol.RequestConnControl;
-import org.apache.http.protocol.RequestContent;
-import org.apache.http.protocol.RequestTargetHost;
+import org.apache.http.protocol.*;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public abstract class ChannelHTTPClient implements InitializingBean {
-	protected final Logger LOG = LoggerFactory.getLogger(this.getClass());
+	protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 	private HttpClient client;
 	private List<BasicHeader> defaultHeaders = null;
 
@@ -111,10 +103,10 @@ public abstract class ChannelHTTPClient implements InitializingBean {
 			if (statusLine.getStatusCode() == HttpStatus.SC_OK) {
 				content = EntityUtils.toString(entity);
 			} else {
-				LOG.error("::getContent  post :" + request + " status:" + statusLine);
+				logger.error("::getContent  post :" + request + " status:" + statusLine);
 			}
 		} catch (Exception e) {
-			LOG.error("::getSessionId  ", e);
+			logger.error("::getSessionId  ", e);
 
 		} finally {
 			get.releaseConnection();
@@ -141,10 +133,10 @@ public abstract class ChannelHTTPClient implements InitializingBean {
 			if (statusLine.getStatusCode() == HttpStatus.SC_OK) {
 				content = EntityUtils.toString(entity);
 			} else {
-				LOG.error("::postContent  post :" + request + " status:" + statusLine);
+				logger.error("::postContent  post :" + request + " status:" + statusLine);
 			}
 		} catch (Exception e) {
-			LOG.error("::postContent  ", e);
+			logger.error("::postContent  ", e);
 
 		} finally {
 			post.releaseConnection();

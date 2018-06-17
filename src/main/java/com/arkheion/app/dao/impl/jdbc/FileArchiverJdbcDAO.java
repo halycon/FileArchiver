@@ -1,34 +1,21 @@
 package com.arkheion.app.dao.impl.jdbc;
 
-import java.lang.reflect.Type;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.annotation.Resource;
-
+import com.arkheion.app.dao.IConnectionPool;
+import com.arkheion.app.dao.IFileArchiverDAO;
+import com.arkheion.app.model.*;
+import com.arkheion.app.model.Error;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import com.arkheion.app.dao.IConnectionPool;
-import com.arkheion.app.dao.IFileArchiverDAO;
-import com.arkheion.app.model.Channel;
-import com.arkheion.app.model.Error;
-import com.arkheion.app.model.ErrorType;
-import com.arkheion.app.model.Implementation;
-import com.arkheion.app.model.Priority;
-import com.arkheion.app.model.Profile;
-import com.arkheion.app.model.FileModel;
-import com.arkheion.app.model.FileProperty;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import javax.annotation.Resource;
+import java.lang.reflect.Type;
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component("FileArchiverJdbcDOA")
 public class FileArchiverJdbcDAO implements IFileArchiverDAO {
@@ -52,7 +39,6 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 		try {
 			String query = " select * from arkheion.channel where id = ? ";
 			connection = pool.getConnection();
-			// logger.warn("query {}", query);
 
 			pstmt = connection.prepareStatement(query);
 			pstmt.setLong(1, id);
@@ -68,15 +54,14 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 				channel.setCreate_date(resultSet.getObject("create_date", LocalDateTime.class));
 				channel.setStatus(resultSet.getBoolean("status"));
 			}
-			resultSet.close();
 
-			pstmt.close();
 
 		} catch (Exception e) {
 			logger.error("getChannelById db error : {}", e);
 		} finally {
+            closeStatementAndResultSet(pstmt, resultSet);
 
-			pool.closeConnection(connection);
+            pool.closeConnection(connection);
 		}
 		return channel;
 	}
@@ -90,7 +75,6 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 		try {
 			String query = " select * from arkheion.profile where id = ? ";
 			connection = pool.getConnection();
-			// logger.warn("query {}", query);
 
 			pstmt = connection.prepareStatement(query);
 			pstmt.setLong(1, id);
@@ -105,14 +89,13 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 				profile.setCreate_date(resultSet.getObject("create_date", LocalDateTime.class));
 				profile.setStatus(resultSet.getBoolean("status"));
 			}
-			resultSet.close();
 
-			pstmt.close();
 
 		} catch (Exception e) {
 			logger.error("getProfileById db error : {}", e);
 		} finally {
-			pool.closeConnection(connection);
+            closeStatementAndResultSet(pstmt, resultSet);
+            pool.closeConnection(connection);
 		}
 		return profile;
 	}
@@ -126,7 +109,6 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 		try {
 			String query = " select * from arkheion.implementation where id = ? ";
 			connection = pool.getConnection();
-			// logger.warn("query {}", query);
 
 			pstmt = connection.prepareStatement(query);
 			pstmt.setLong(1, id);
@@ -140,14 +122,12 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 				implementation.setCreate_date(resultSet.getObject("create_date", LocalDateTime.class));
 				implementation.setStatus(resultSet.getBoolean("status"));
 			}
-			resultSet.close();
-
-			pstmt.close();
 
 		} catch (Exception e) {
 			logger.error("getImplementationById db error : {}", e);
 		} finally {
-			pool.closeConnection(connection);
+            closeStatementAndResultSet(pstmt, resultSet);
+            pool.closeConnection(connection);
 		}
 		return implementation;
 	}
@@ -155,38 +135,39 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 	@Override
 	public FileModel addQueueRecord(FileModel queueRecord) {
 		Connection con = null;
-
+        ResultSet resultSet = null;
+        PreparedStatement pstmt = null;
 		try {
 			con = pool.getConnection();
 
-			PreparedStatement pstatement = con.prepareStatement("insert into arkheion.queue "
+            pstmt = con.prepareStatement("insert into arkheion.queue "
 					+ "(channel_id, ref_code, profile_id, status, create_date,  topic_id,"
 					+ " document_class, addt_props , filename , localStoreFileName , mimetype) "
 					+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
 
-			pstatement.setInt(1, queueRecord.getChannel_id());
-			pstatement.setString(2, queueRecord.getRef_code());
-			pstatement.setInt(3, queueRecord.getProfile_id());
-			pstatement.setBoolean(4, queueRecord.isStatus());
-			pstatement.setTimestamp(5, Timestamp.valueOf(queueRecord.getCreate_date()));
-			pstatement.setInt(6, queueRecord.getTopic_id().getId());
-			pstatement.setString(7, queueRecord.getDocument_class());
-			pstatement.setString(8, gson.toJson(queueRecord.getAddt_props()));
-			pstatement.setString(9, queueRecord.getFilename());
-			pstatement.setString(10, queueRecord.getLocalStoreFileName());
-			pstatement.setString(11, queueRecord.getMimetype());
-			pstatement.executeUpdate();
-			ResultSet rs = pstatement.getGeneratedKeys();
-			if (rs.next()) {
-				queueRecord.setId(rs.getInt(1));
+            pstmt.setInt(1, queueRecord.getChannel_id());
+            pstmt.setString(2, queueRecord.getRef_code());
+            pstmt.setInt(3, queueRecord.getProfile_id());
+            pstmt.setBoolean(4, queueRecord.isStatus());
+            pstmt.setTimestamp(5, Timestamp.valueOf(queueRecord.getCreate_date()));
+            pstmt.setInt(6, queueRecord.getTopic_id().getId());
+            pstmt.setString(7, queueRecord.getDocument_class());
+            pstmt.setString(8, gson.toJson(queueRecord.getAddt_props()));
+            pstmt.setString(9, queueRecord.getFilename());
+            pstmt.setString(10, queueRecord.getLocalStoreFileName());
+            pstmt.setString(11, queueRecord.getMimetype());
+            pstmt.executeUpdate();
+            resultSet = pstmt.getGeneratedKeys();
+			if (resultSet.next()) {
+				queueRecord.setId(resultSet.getInt(1));
 			}
-			rs.close();
-			pstatement.close();
+
 
 		} catch (Exception e) {
 			logger.info("addQueueRecord {}", e);
 		} finally {
-			pool.closeConnection(con);
+            closeStatementAndResultSet(pstmt, resultSet);
+            pool.closeConnection(con);
 		}
 
 		return queueRecord;
@@ -210,13 +191,13 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 			if (resultSet.next()) {
 				exists = true;
 			}
-			resultSet.close();
-			pstmt.close();
+
 
 		} catch (Exception e) {
 			logger.error("checkDocumentClassExists db error : {}", e);
 		} finally {
-			pool.closeConnection(connection);
+            closeStatementAndResultSet(pstmt, resultSet);
+            pool.closeConnection(connection);
 		}
 		return exists;
 	}
@@ -230,11 +211,7 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 		try {
 
 			String query = " select * from arkheion.document_class_prop where document_class_id = "
-					+ "(select id FROM arkheion.document_class where name = ? ) ";
-//			if (!CollectionUtils.isEmpty(addt_props)) {
-//				String keylist = query + " and name in ('"
-//						+ StringUtils.join((new ArrayList<String>(addt_props.keySet())), "','") + "')";
-//			}
+					+ "(select id FROM arkheion.document_class where name = ? ) ";//
 
 			connection = pool.getConnection();
 
@@ -251,14 +228,13 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 					addt_props_filtered.put(resultSet.getString("name"), addt_props.get(resultSet.getString("name")));
 				}
 			}
-			addt_props = addt_props_filtered;
-			resultSet.close();
-			pstmt.close();
+
 
 		} catch (Exception e) {
 			logger.error("validateAdditionalProperties db error : {}", e);
 		} finally {
-			pool.closeConnection(connection);
+            closeStatementAndResultSet(pstmt, resultSet);
+            pool.closeConnection(connection);
 		}
 		return error;
 	}
@@ -272,7 +248,6 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 		try {
 			String query = " select * from arkheion.profile where hashkey = ? ";
 			connection = pool.getConnection();
-			// logger.warn("query {}", query);
 
 			pstmt = connection.prepareStatement(query);
 			pstmt.setString(1, hashkey);
@@ -287,14 +262,13 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 				profile.setCreate_date(resultSet.getObject("create_date", LocalDateTime.class));
 				profile.setStatus(resultSet.getBoolean("status"));
 			}
-			resultSet.close();
 
-			pstmt.close();
 
 		} catch (Exception e) {
 			logger.error("getProfileByHashkey db error : {}", e);
 		} finally {
-			pool.closeConnection(connection);
+            closeStatementAndResultSet(pstmt, resultSet);
+            pool.closeConnection(connection);
 		}
 		return profile;
 	}
@@ -334,14 +308,13 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 				fileModel.setFilename(resultSet.getString("filename"));
 				fileModel.setLocalStoreFileName(resultSet.getString("localStoreFileName"));
 			}
-			resultSet.close();
 
-			pstmt.close();
 
 		} catch (Exception e) {
 			logger.error("getQueueRecord db error : {}", e);
 		} finally {
-			pool.closeConnection(connection);
+            closeStatementAndResultSet(pstmt, resultSet);
+            pool.closeConnection(connection);
 		}
 		return fileModel;
 	}
@@ -380,19 +353,19 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 				fileModel.setFilename(resultSet.getString("filename"));
 				fileModel.setLocalStoreFileName(resultSet.getString("localStoreFileName"));
 			}
-			resultSet.close();
 
-			pstmt.close();
 
 		} catch (Exception e) {
 			logger.error("getQueueRecordById db error : {}", e);
 		} finally {
-			pool.closeConnection(connection);
+            closeStatementAndResultSet(pstmt, resultSet);
+
+            pool.closeConnection(connection);
 		}
 		return fileModel;
 	}
 
-	@Override
+    @Override
 	public boolean updateQueueRecordProcessDateById(LocalDateTime processDate, boolean status, int id, String channel_ref_code, String errorMessage) {
 		Connection connection = null;
 		PreparedStatement pstmt = null;
@@ -409,19 +382,36 @@ public class FileArchiverJdbcDAO implements IFileArchiverDAO {
 			pstmt.setString(4, errorMessage);
 			pstmt.setInt(5, id);
 			affectedRows = pstmt.executeUpdate();
-			pstmt.close();
 
 		} catch (Exception e) {
-			e.printStackTrace();
+            logger.error("updateQueueRecordProcessDateById db error : {}", e);
 		} finally {
 			try {
-				pstmt.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+                logger.error("updateQueueRecordProcessDateById db error : {}", e);
 			}
 			pool.closeConnection(connection);
 		}
 		return affectedRows != 0 ? true : false;
 	}
+
+
+    private void closeStatementAndResultSet(PreparedStatement pstmt, ResultSet resultSet) {
+        try {
+            if (resultSet != null) {
+                resultSet.close();
+            }
+            if (pstmt != null) {
+                pstmt.close();
+            }
+        } catch (SQLException e) {
+            logger.error("closeStatementAndResultSet db error : {}", e);
+        }
+    }
+
+
 
 }
